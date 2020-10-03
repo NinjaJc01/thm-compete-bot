@@ -30,10 +30,11 @@ type Config struct {
 	ChannelID string   `json:"channelID"`
 }
 
-type statistics struct {
-	username       string
-	rank           int
-	completedRooms int
+//Statistics is the format for a user's stats, similar to how it's pulled from the API
+type Statistics struct {
+	Username string `json:"username"`
+	Rank     int    `json:"userRank"`
+	Points   int    `json:"points"`
 }
 
 func main() {
@@ -109,62 +110,43 @@ func parseCompletedRooms(roomsJSON []byte) int {
 	return len(rooms)
 }
 
-func getUserTHMStats(username string) statistics {
-	rankRes, err := http.Get("https://tryhackme.com/api/usersRank/" + username)
+func getUserTHMStats(username string) Statistics {
+	userInfoRes, err := http.Get("https://tryhackme.com/api/user/" + username)
 	if err != nil {
 		log.Println(err.Error())
-		return statistics{}
+		return Statistics{}
 	}
-	defer rankRes.Body.Close()
-	rankResBody, err := ioutil.ReadAll(rankRes.Body)
+	userInfoResBody, err := ioutil.ReadAll(userInfoRes.Body)
 	if err != nil {
 		log.Println(err.Error())
-		return statistics{}
+		return Statistics{}
 	}
-	var userRankJSON map[string]int
-	json.Unmarshal(rankResBody, &userRankJSON)
-	roomsRes, err := http.Get("https://tryhackme.com/api/all-completed-rooms/" + username)
+	var userResStats Statistics
+	err = json.Unmarshal(userInfoResBody, &userResStats)
 	if err != nil {
 		log.Println(err.Error())
-		return statistics{}
+		return Statistics{}
 	}
-	defer roomsRes.Body.Close()
-	roomsResBody, err := ioutil.ReadAll(roomsRes.Body)
-	if err != nil {
-		log.Println(err.Error())
-		return statistics{}
-	}
-	completedRooms := parseCompletedRooms(roomsResBody)
-	return statistics{
-		username:       username,
-		rank:           userRankJSON["userRank"],
-		completedRooms: completedRooms,
-	}
+	userResStats.Username = username
+	return userResStats
 }
 
-func formUserMessage(username string) string {
-	stats := getUserTHMStats(username)
-	return fmt.Sprintf("User:\t%s\n"+
-		"Rank:\t%v\n"+
-		"Completed Rooms:\t%v\n", stats.username, stats.rank, stats.completedRooms)
-}
-
-func userStatsToField(stats statistics) discordgo.MessageEmbedField {
+func userStatsToField(stats Statistics) discordgo.MessageEmbedField {
 	embedField := discordgo.MessageEmbedField{
-		Name:  stats.username,
-		Value: fmt.Sprintf("Rank:\t\t%v\nCompleted Rooms:\t%v", stats.rank, stats.completedRooms),
+		Name:  stats.Username,
+		Value: fmt.Sprintf("Rank:\t%v\nPoints:\t%v", stats.Rank, stats.Points),
 	}
 	return embedField
 }
 
 func dailyStats(s *discordgo.Session, channelID string) {
 	log.Println("Starting daily stats")
-	var userStats []statistics
+	var userStats []Statistics
 	for _, user := range users {
 		userStats = append(userStats, getUserTHMStats(user))
 	}
 	sort.Slice(userStats, func(i, j int) bool {
-		return userStats[i].rank < userStats[j].rank
+		return userStats[i].Rank < userStats[j].Rank
 	})
 	messageEmbed := discordgo.MessageEmbed{
 		Title: "__Daily Stats__",
