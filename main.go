@@ -32,9 +32,10 @@ type Config struct {
 
 //Statistics is the format for a user's stats, similar to how it's pulled from the API
 type Statistics struct {
-	Username string `json:"username"`
-	Rank     int    `json:"userRank"`
-	Points   int    `json:"points"`
+	Username   string `json:"username"`
+	Rank       int    `json:"userRank"`
+	Points     int    `json:"points"`
+	ProfileURL string `json:"avatar"`
 }
 
 func main() {
@@ -104,12 +105,6 @@ func readConfig() (config Config) {
 	return
 }
 
-func parseCompletedRooms(roomsJSON []byte) int {
-	var rooms []map[string]string
-	json.Unmarshal(roomsJSON, &rooms)
-	return len(rooms)
-}
-
 func getUserTHMStats(username string) Statistics {
 	userInfoRes, err := http.Get("https://tryhackme.com/api/user/" + username)
 	if err != nil {
@@ -162,6 +157,20 @@ func dailyStats(s *discordgo.Session, channelID string) {
 	s.ChannelMessageSendEmbed(channelID, &messageEmbed)
 }
 
+func generateSingleUserStats(username string) discordgo.MessageEmbed {
+	userStatistics := getUserTHMStats(username)
+	messageEmbed := discordgo.MessageEmbed{
+		Title:     "__User Stats__",
+		Thumbnail: &discordgo.MessageEmbedThumbnail{URL: userStatistics.ProfileURL},
+		Fields: func() []*discordgo.MessageEmbedField {
+			var embedFields []*discordgo.MessageEmbedField
+			currentEmbed := userStatsToField(userStatistics)
+			return append(embedFields, &currentEmbed)
+		}(),
+	}
+	return messageEmbed
+}
+
 func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	//Ignore messages from the bot itself
 	startTime := time.Now()
@@ -178,14 +187,7 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	switch command[0] {
 	case prefix + "stats":
 		if len(command) == 2 {
-			messageEmbed := discordgo.MessageEmbed{
-				Title: "__User Stats__",
-				Fields: func() []*discordgo.MessageEmbedField {
-					var embedFields []*discordgo.MessageEmbedField
-					currentEmbed := userStatsToField(getUserTHMStats(command[1]))
-					return append(embedFields, &currentEmbed)
-				}(),
-			}
+			messageEmbed := generateSingleUserStats(command[1])
 			s.ChannelMessageSendEmbed(m.ChannelID, &messageEmbed)
 		}
 	default:
