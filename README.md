@@ -6,7 +6,7 @@ The bot expects a config file in the CWD when it runs.
 The structure is as follows:
 ```json
 {
-    "token":"PutYourDiscordTokenHere,
+    "token":"PutYourDiscordTokenHere",
     "users":["NinjaJc01","szymex73"],
     "prefix":"£",
     "channelID":"DesiredChannelIDForDailyStatsGoesHere"
