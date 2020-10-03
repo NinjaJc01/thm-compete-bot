@@ -9,6 +9,7 @@ The structure is as follows:
     "token":"PutYourDiscordTokenHere",
     "users":["NinjaJc01","szymex73"],
     "prefix":"£",
+    "leaderboardTime": "00 22 * * *",
     "channelID":"DesiredChannelIDForDailyStatsGoesHere"
 }
 ```

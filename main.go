@@ -27,6 +27,7 @@ type Config struct {
 	Prefix    string   `json:"prefix"`
 	Token     string   `json:"token"`
 	UserList  []string `json:"users"`
+	LbdTime   string   `json:"leaderboardTime"`
 	ChannelID string   `json:"channelID"`
 }
 
@@ -42,7 +43,7 @@ func main() {
 	//Load config
 	log.Println("Parsing config")
 	config := readConfig()
-	if config.Token == "" || config.Prefix == "" || config.ChannelID == "" || config.UserList == nil {
+	if config.Token == "" || config.Prefix == "" || config.ChannelID == "" || config.LbdTime == "" || config.UserList == nil {
 		log.Println("Couldn't parse config, potentially missing values?")
 		return
 	}
@@ -67,7 +68,7 @@ func main() {
 	//Start timer so we can do stats every x
 	log.Println("Starting timer for stats")
 	c := cron.New()
-	c.AddFunc("00 22 * * *", func() {
+	c.AddFunc(config.LbdTime, func() {
 		dailyStats(discord, config.ChannelID)
 	})
 	c.Start()
