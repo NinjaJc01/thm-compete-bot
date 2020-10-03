@@ -189,10 +189,7 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.Bot { //Ignore other bots
 		return
 	}
-	if len(m.Content) < 2 {
-		return
-	}
-	if m.Content[0] != prefix[0] {
+	if !strings.HasPrefix(m.Content, prefix) {
 		return
 	}
 	command := strings.Split(m.Content, " ")
