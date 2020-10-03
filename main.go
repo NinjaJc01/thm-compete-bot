@@ -8,12 +8,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/robfig/cron"
 	"github.com/bwmarrin/discordgo"
+	"github.com/robfig/cron"
 )
 
 var (
@@ -45,7 +46,7 @@ func main() {
 	}
 	prefix = config.Prefix
 	users = config.UserList
-	
+
 	//Set up discord
 	discord, err := discordgo.New("Bot " + config.Token)
 	if err != nil {
@@ -148,13 +149,35 @@ func formUserMessage(username string) string {
 		"Completed Rooms:\t%v\n", stats.username, stats.rank, stats.completedRooms)
 }
 
+func userStatsToField(stats statistics) discordgo.MessageEmbedField {
+	embedField := discordgo.MessageEmbedField{
+		Name:  stats.username,
+		Value: fmt.Sprintf("Rank:\t\t%v\nCompleted Rooms:\t%v", stats.rank, stats.completedRooms),
+	}
+	return embedField
+}
+
 func dailyStats(s *discordgo.Session, channelID string) {
 	log.Println("Starting daily stats")
-	message := "Daily user statistics\n"
+	var userStats []statistics
 	for _, user := range users {
-		message += formUserMessage(user) + "\n"
+		userStats = append(userStats, getUserTHMStats(user))
 	}
-	s.ChannelMessageSend(channelID,message)
+	sort.Slice(userStats, func(i, j int) bool {
+		return userStats[i].rank < userStats[j].rank
+	})
+	messageEmbed := discordgo.MessageEmbed{
+		Title: "__Daily Stats__",
+		Fields: func() []*discordgo.MessageEmbedField {
+			var embedFields []*discordgo.MessageEmbedField
+			for _, user := range userStats {
+				currentEmbed := userStatsToField(user)
+				embedFields = append(embedFields, &currentEmbed)
+			}
+			return embedFields
+		}(),
+	}
+	s.ChannelMessageSendEmbed(channelID, &messageEmbed)
 }
 
 func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -166,6 +189,9 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.Bot { //Ignore other bots
 		return
 	}
+	if len(m.Content) < 2 {
+		return
+	}
 	if m.Content[0] != prefix[0] {
 		return
 	}
@@ -173,8 +199,15 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	switch command[0] {
 	case prefix + "stats":
 		if len(command) == 2 {
-			message := formUserMessage(command[1])
-			s.ChannelMessageSend(m.ChannelID, message)
+			messageEmbed := discordgo.MessageEmbed{
+				Title: "__User Stats__",
+				Fields: func() []*discordgo.MessageEmbedField {
+					var embedFields []*discordgo.MessageEmbedField
+					currentEmbed := userStatsToField(getUserTHMStats(command[1]))
+					return append(embedFields, &currentEmbed)
+				}(),
+			}
+			s.ChannelMessageSendEmbed(m.ChannelID, &messageEmbed)
 		}
 	default:
 		return
