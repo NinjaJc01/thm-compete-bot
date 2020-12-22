@@ -14,6 +14,5 @@ The structure is as follows:
     "channelID":"DesiredChannelIDForDailyStatsGoesHere"
 }
 ```
-The prefix must be a single character.
 ## Commands - Replace £ with the prefix in your config file
 - £stats NinjaJc01 - Retrieve the stats for THM User NinjaJc01
