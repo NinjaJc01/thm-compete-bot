@@ -1,4 +1,5 @@
 # thm-compete-bot
+## This is currently broken due to TryHackMe using cloudflare to help deal with the Advent Of Cyber load.
 Discord Bot to encourage competition on TryHackMe between my housemates.
 Prints a leaderboard at 10PM daily, and allows retrieval of user stats
 ## Config file
